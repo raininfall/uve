@@ -172,14 +172,14 @@ static int uve_bufio_handle_read(uve_bufio_reader_t* reader,
     return 0;
   }
   
-  uv_buf_t buf = {0};
-  buf.base = reader->buf.base + reader->r;
-  buf.len = UVE_MIN(uve_bufio_len(reader), request->read.len);
-  // callback
   uve_list_remove(&request->link);
-  request->cb(request, 0, &buf);
   // read data
+  uv_buf_t* buf =
+      uve_buf_create(reader->buf.base + reader->r,
+                     UVE_MIN(uve_bufio_len(reader), request->read.len));
   reader->r += request->read.len;
+  // callback
+  request->cb(request, 0, buf);
   // reset read and write marker when buffer is empty
   if (reader->r == reader->w) {
     reader->r = reader->w = 0;

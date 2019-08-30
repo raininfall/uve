@@ -11,6 +11,7 @@ typedef struct uve_request_t uve_request_t;
 typedef void (*uve_request_cb)(uve_request_t*, int, uv_buf_t*);
 
 uve_request_t* uve_request_peek(size_t len, void* data, uve_request_cb cb);
+uve_request_t* uve_request_read(size_t len, void* data, uve_request_cb cb);
 
 void uve_request_delete(uve_request_t* request);
 
