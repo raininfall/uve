@@ -19,9 +19,10 @@ static bool called[1] = {0};
 
 static void on_peek(uve_request_t* request, int status, uv_buf_t* buf) {
   called[0] = true;
-
-  ASSERT_NE(0, status);
-  ASSERT_EQ(NULL, buf);
+  printf("called\r\n");
+  ASSERT_EQ(UV_EOF, status);
+  ASSERT_EQ(NULL, buf->base);
+  ASSERT_EQ(0, buf->len);
 
   uv_tcp_t* client = (uv_tcp_t*)uve_request_data(request);
   uv_close((uv_handle_t*)client, on_client_close);
@@ -48,7 +49,7 @@ static void on_connection(uv_stream_t* server, int status) {
   ASSERT_EQ(0, r);
 
   r = uve_bufio_request(reader, uve_request_peek(4, client, on_peek));
-  ASSERT_EQ(0, r);
+  ASSERT_EQ(0, r); 
 }
 
 static void on_sender_close(uv_handle_t* handle) {}

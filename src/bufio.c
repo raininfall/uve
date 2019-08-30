@@ -14,10 +14,10 @@ struct uve_bufio_reader_t {
   size_t last_byte;
   // requests
   uve_list_t requests;
-  uv_check_t handle;
+  uv_prepare_t main;
 };
 
-static void uve_bufio_main(uv_check_t* handle);
+static void uve_bufio_main(uv_prepare_t* handle);
 static size_t uve_bufio_len(uve_bufio_reader_t* reader);
 static int uve_bufio_handle_peek(uve_bufio_reader_t* reader, uve_request_t* request);
 static int uve_bufio_handle_read(uve_bufio_reader_t* reader, uve_request_t* request);
@@ -44,11 +44,11 @@ int uve_bufio_new(uve_bufio_reader_t** preader, uv_stream_t* handle, size_t size
   reader->buf.len = size;
   // init none-zero members
   uve_list_init(&reader->requests);
-  if (0 != (err = uv_check_init(handle->loop, &reader->handle))) {
+  if (0 != (err = uv_prepare_init(handle->loop, &reader->main))) {
     return err;
   }
-  reader->handle.data = reader;
-  if (0 != (err = uv_check_start(&reader->handle, uve_bufio_main))) {
+  reader->main.data = reader;
+  if (0 != (err = uv_prepare_start(&reader->main, uve_bufio_main))) {
     return err;
   }
 
@@ -64,17 +64,23 @@ static void uve_bufio_on_close(uv_handle_t* handle) {
   free(reader);
 }
 
-void uve_bufio_delete(uve_bufio_reader_t* reader) {
+static void uve_bufio_cleanup_requests(uve_bufio_reader_t* reader) {
   uve_list_t* q = NULL;
+  int err = reader->err == 0 ? UV_EOF : reader->err;
 
   for (q = uve_list_next(&reader->requests); !uve_list_empty(&reader->requests);
        q = uve_list_next(&reader->requests)) {
     uve_list_remove(q);
     uve_request_t* request = uve_list_data(q, uve_request_t, link);
-    request->cb(request, UV_EOF, uve_buf_zero());
+    request->cb(request, err, uve_buf_zero());
   }
+}
 
-  uv_close((uv_handle_t*)&reader->handle, uve_bufio_on_close);
+void uve_bufio_delete(uve_bufio_reader_t* reader) {
+  uve_bufio_cleanup_requests(reader);
+  if (!uv_is_closing((uv_handle_t*)&reader->main)) {
+    uv_close((uv_handle_t*)&reader->main, uve_bufio_on_close);
+  }
 }
 
 int uve_bufio_request(uve_bufio_reader_t* reader, uve_request_t* request) {
@@ -96,9 +102,10 @@ static void uve_bufio_read(uv_stream_t* stream,
                            ssize_t nread,
                            const uv_buf_t* buf) {
   uve_bufio_reader_t* reader = (uve_bufio_reader_t*)stream->data;
+  // TODO: what's to do when nread == 0?
   if (nread > 0) {
     assert(reader->buf.base + reader->w == buf->base);
-    reader->w += buf->len;
+    reader->w += nread;
   } else if (nread < 0) {
     reader->err = nread;
   }
@@ -108,30 +115,37 @@ uv_read_cb uve_bufio_read_cb(uve_bufio_reader_t* reader) {
   return uve_bufio_read;
 }
 
-static void uve_bufio_main(uv_check_t* handle) {
+static void uve_bufio_main(uv_prepare_t* handle) {
   uve_bufio_reader_t* reader = (uve_bufio_reader_t*)handle->data;
   uve_list_t* q = NULL;
   int err = 0;
 
-  for (q = uve_list_next(&reader->requests); !uve_list_empty(&reader->requests);
-       q = uve_list_next(&reader->requests)) {
-    uve_request_t* request = uve_list_data(q, uve_request_t, link);
-    switch (request->type) {
-      case UVE_REQUEST_PEEK: {
-        err = uve_bufio_handle_peek(reader, request);
-      } break;
-      case UVE_REQUEST_READ: {
-        err = uve_bufio_handle_read(reader, request);
-      } break;
+  if (0 == reader->err) {
+    for (q = uve_list_next(&reader->requests);
+         !uve_list_empty(&reader->requests);
+         q = uve_list_next(&reader->requests)) {
+      uve_request_t* request = uve_list_data(q, uve_request_t, link);
+      switch (request->type) {
+        case UVE_REQUEST_PEEK: {
+          err = uve_bufio_handle_peek(reader, request);
+        } break;
+        case UVE_REQUEST_READ: {
+          err = uve_bufio_handle_read(reader, request);
+        } break;
+      }
+      if (err > 0) {
+        continue;
+      } else if (err == 0) {
+        break;
+      } else {
+        reader->err = err;
+        break;
+      }
     }
-    if (err > 0) {
-      continue;
-    } else if (err == 0) {
-      break;
-    } else {
-      reader->err = err;
-      return;
-    }
+  }
+
+  if (0 != reader->err) {
+    uve_bufio_cleanup_requests(reader);
   }
 }
 

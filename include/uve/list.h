@@ -1,6 +1,8 @@
 #ifndef __BQ_LIST_H__
 #define __BQ_LIST_H__ 1
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
