@@ -3,6 +3,8 @@ language: cpp
 compiler:
   - gcc
 
+install: make get-deps
+
 script:
   - "wget https://github.com/xmake-io/xmake/releases/download/v2.2.8/xmake-v2.2.8.amd64.deb && sudo dpkg -i xmake-v2.2.8.amd64.deb"
   - "xmake -y -v && xmake run"
