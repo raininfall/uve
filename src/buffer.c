@@ -10,13 +10,13 @@ uv_buf_t* uve_buf_new(size_t size) {
   if (NULL == buf) {
     return NULL;
   }
-  buf.base = buf + 1;
-  buf.len = size;
+  buf->base = (char*)(buf + 1);
+  buf->len = size;
   return buf;
 }
 
 void uve_buf_delete(uv_buf_t* buf) {
-  if (NULL != buf.base) {
-    free(buf)
+  if (NULL != buf->base) {
+    free(buf);
   }
 }
