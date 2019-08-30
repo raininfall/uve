@@ -13,7 +13,6 @@ target("uve")
 
     if (is_plat("windows")) then
 	    add_cxflags("/MT")
-        add_files("src/win/*.c")
     end
 
     if is_mode("debug") then
