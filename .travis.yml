@@ -4,7 +4,7 @@ compiler:
   - gcc
 
 script:
-  - "bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh -O -)"
+  - "add-apt-repository ppa:tboox/xmake && apt-get update && apt-get install xmake"
   - "xmake && xmake run"
 
 notifications:

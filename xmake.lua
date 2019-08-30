@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 
-add_repositories("me git@gitee.com:raininfall/xmake-repo.git")
+add_repositories("me https://gitee.com/raininfall/xmake-repo.git")
 add_requires("gtest")
 add_requires("libuv")
 
