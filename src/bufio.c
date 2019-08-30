@@ -135,13 +135,18 @@ static void uve_bufio_main(uv_check_t* handle) {
   }
 }
 
-static int uve_bufio_handle_peek(uve_bufio_reader_t* reader, uve_request_t* request) {
+static int uve_bufio_handle_peek(uve_bufio_reader_t* reader,
+                                 uve_request_t* request) {
   if (uve_bufio_len(reader) >= request->peek.len) {
-    uv_buf_t buf = {0};
-    buf.base = reader->buf.base + reader->r;
-    buf.len = request->peek.len;
     uve_list_remove(&request->link);
-    request->cb(request, 0, &buf);
+
+    uv_buf_t* buf =
+        uve_buf_create(reader->buf.base + reader->r, request->peek.len);
+    if (NULL == buf) {
+      request->cb(request, UV_ENOMEM, NULL);
+    } else {
+      request->cb(request, 0, buf);
+    }
     return 1;
   }
   return 0;

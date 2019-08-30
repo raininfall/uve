@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <uve/bufio.h>
+#include <uve/buffer.h>
 #include "task.h"
 
 static void on_server_close(uv_handle_t* handle) {}
@@ -28,6 +29,7 @@ static void on_peek(uve_request_t* request, int status, uv_buf_t* buf) {
   uv_close((uv_handle_t*)client, on_client_close);
 
   uve_request_delete(request);
+  uve_buf_delete(buf);
 }
 
 static void on_connection(uv_stream_t* server, int status) {
@@ -103,7 +105,7 @@ TEST(bufio, peek) {
   r = uv_run(loop, UV_RUN_DEFAULT);
   ASSERT_EQ(0, r);
 
-  for (size_t i = 0; i < (sizeof(called)/sizeof(called[0])); ++i) {
+  for (size_t i = 0; i < (sizeof(called) / sizeof(called[0])); ++i) {
     ASSERT_TRUE(called[i]);
   }
 

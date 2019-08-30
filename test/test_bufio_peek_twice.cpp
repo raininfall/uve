@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <uve/bufio.h>
+#include <uve/buffer.h>
 #include "task.h"
 
 static bool called[2] = {0};
@@ -24,6 +25,7 @@ static void on_first_peek(uve_request_t* request, int status, uv_buf_t* buf) {
   ASSERT_EQ(4, buf->len);
   ASSERT_EQ(0, memcmp("1234", buf->base, 4));
 
+  uve_buf_delete(buf);
   uve_request_delete(request);
 }
 
@@ -37,6 +39,7 @@ static void on_second_peek(uve_request_t* request, int status, uv_buf_t* buf) {
   uv_tcp_t* client = (uv_tcp_t*)uve_request_data(request);
   uv_close((uv_handle_t*)client, on_client_close);
 
+  uve_buf_delete(buf);
   uve_request_delete(request);
 }
 
@@ -115,7 +118,7 @@ TEST(bufio, peek_twice) {
   r = uv_run(loop, UV_RUN_DEFAULT);
   ASSERT_EQ(0, r);
 
-  for (size_t i = 0; i < (sizeof(called)/sizeof(called[0])); ++i) {
+  for (size_t i = 0; i < (sizeof(called) / sizeof(called[0])); ++i) {
     ASSERT_TRUE(called[i]);
   }
 
