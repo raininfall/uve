@@ -4,7 +4,7 @@ compiler:
   - gcc
 
 script:
-  - "sudo add-apt-repository ppa:tboox/xmake && sudo apt-get update && sudo apt-get install -y xmake"
+  - "wget https://github.com/xmake-io/xmake/releases/download/v2.2.8/xmake-v2.2.8.amd64.deb && sudo dpkg -i xmake-v2.2.8.amd64.deb"
   - "xmake && xmake run"
 
 notifications:
