@@ -1,0 +1,7 @@
+version: 2.1
+  jobs:
+    build:
+      steps:
+        - run: bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh -O -)
+        - checkout # check out the code in the project directory
+        - run: xmake && xmake run
